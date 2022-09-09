@@ -97,6 +97,17 @@ file_name=stri_reverse(stri_split_fixed(str = (stri_split_fixed(str = stri_rever
 ext=tolower(stri_reverse(stri_split_fixed(str = stri_reverse(file_path),pattern = ".",n=2)[[1]][1]))
 
 path=paste(stri_reverse(stri_split_fixed(str = stri_reverse(file_path), pattern="/",n = 2)[[1]][2]),"/",sep = "")
+                 
+                 
+#Output file name based on input file name and date/time stamped.
+output_file=paste(file_name,
+                  "_updated_bucket_",
+                  stri_replace_all_fixed(
+                    str = Sys.Date(),
+                    pattern = "-",
+                    replacement = "_"),
+                  sep="")
+                                   
 
 #Read in metadata page/file to check against the expected/required properties. 
 #Logic has been setup to accept the original XLSX as well as a TSV or CSV format.
@@ -178,7 +189,7 @@ df_cds_new=df_cds_new%>%
   select(-url)
 
 #Write out of new CDS submission template
-write_tsv(x = df_cds_new,file = paste(path,file_name,"_updated_buckets.tsv",sep = ""), na="")
+write_tsv(x = df_cds_new,file = paste(path,output_file,".tsv",sep = ""), na="")
 
 #A stop message for the user that the file copying is done.
 cat("\n\nThe data files have been moved to the new bucket location.\n")
