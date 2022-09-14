@@ -125,7 +125,8 @@ if (ext == "tsv"){
 df=remove_empty(df,which = "rows")
 
 #Simplify the data frame to only include the needed column with a simplier name.
-df_cds=df
+df_cds=df%>%
+  select(-url)
 df=select(df,file_url_in_cds)
 
 colnames(df)<-c("s3")
@@ -186,7 +187,7 @@ df_cds_new=suppressMessages(left_join(df_cds,df))
 
 df_cds_new=df_cds_new%>%
   mutate(file_url_in_cds=url)%>%
-  select(-url)
+  select(GUID,file_size,md5sum,url,acl,everything())
 
 #Write out of new CDS submission template
 write_tsv(x = df_cds_new,file = paste(path,output_file,".tsv",sep = ""), na="")
