@@ -144,8 +144,8 @@ if (substr(x = base_bucket,start = nchar(base_bucket), stop = nchar(base_bucket)
 }
 
 #New bucket counter before upload
-new_bucket_count=length(system(command = paste("aws s3 ls --recursive ",base_bucket,sep = ""),intern = TRUE,wait = TRUE))
-
+new_bucket_count=suppressWarnings(length(system(command = paste("aws s3 ls --recursive ",base_bucket,sep = ""),intern = TRUE,wait = TRUE)))
+                 
 
 #############
 #
