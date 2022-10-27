@@ -10,8 +10,7 @@ Rscript --vanilla CDS-File_CopieR.R --help
 ```
 Usage: CDS-File_CopieR.R [options]
 
-CDS-File_CopieR
- v.1.3.1
+CDS-File_CopieR v2.0.0
 
 Please supply the following script with a validated CDS submission template v1.3.1 file and the new AWS bucket location.
 
