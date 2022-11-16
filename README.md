@@ -1,7 +1,7 @@
 # CancerDataServices-File_CopieR
 This script will take a validated CDS submission template and transfer the files from one AWS bucket to a new AWS bucket and output a new template with the updated file locations.
 
-To run the script on a complete [CDS v1.3.1 validated submission template](https://github.com/CBIIT/CancerDataServices-SubmissionValidationR), run the following command in a terminal where R is installed for help.
+To run the script on a complete [CDS validated submission template](https://github.com/CBIIT/cds-model/tree/main/metadata-manifest), run the following command in a terminal where R is installed for help.
 
 ```
 Rscript --vanilla CDS-File_CopieR.R --help
