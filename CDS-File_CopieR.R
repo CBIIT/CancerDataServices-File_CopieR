@@ -54,17 +54,19 @@ option_list = list(
   make_option(c("-f", "--file"), type="character", default=NULL, 
               help="A validated CDS submission template v1.3.1 file, with their current bucket url, e.g. s3://bucket.location.was.here/time/to/move.txt", metavar="character"),
   make_option(c("-b", "--bucket"), type="character", default=NULL, 
-              help="The new AWS bucket location for the files, e.g. s3://bucket.location.is.here/", metavar="character")
+              help="The new AWS bucket location for the files, e.g. s3://bucket.location.is.here/", metavar="character"),
+  make_option(c("-c", "--copy"), type="character", default="Yes", 
+              help="The following option (Yes/No) is for if you would like to disable copying the files and only recieve the output file.", metavar="character")
 )
 
 #create list of options and values for file input
-opt_parser = OptionParser(option_list=option_list, description = "\nCDS-File_CopieR v2.0.0\n\nPlease supply the following script with a validated CDS submission template v1.3.1 file and the new AWS bucket location.")
+opt_parser = OptionParser(option_list=option_list, description = "\nCDS-File_CopieR v2.0.1\n\nPlease supply the following script with a validated CDS submission template v1.3.1 file and the new AWS bucket location.")
 opt = parse_args(opt_parser)
 
 #If no template is presented, return --help, stop and print the following message.
 if (is.null(opt$file)){
   print_help(opt_parser)
-  cat("Please supply the validated CDS submission template v1.3.1 file (-f).\n\n")
+  cat("Please supply the validated CDS submission template file (-f).\n\n")
   suppressMessages(stop(call.=FALSE))
 }
 
@@ -81,8 +83,8 @@ base_bucket=opt$bucket
 #Template file pathway
 file_path=file_path_as_absolute(opt$file)
 
-#A start message for the user that the file copying is underway.
-cat("\nThe data files are being moved to the new bucket location.\n\n")
+#Copy?
+copier=tolower(opt$copy)
 
 
 ###########
@@ -123,8 +125,8 @@ if (ext == "tsv"){
 df=remove_empty(df,which = "rows")
 
 #Simplify the data frame to only include the needed column with a simplier name.
-df_cds=df%>%
-  select(-url)
+df_cds=df#%>%
+  #select(-url)
 df=select(df,file_url_in_cds)
 
 colnames(df)<-c("s3")
@@ -166,15 +168,26 @@ cds_count=dim(df)[1]
 
 upload_count=0
 
-#Progress bar setup
-pb=txtProgressBar(min=0,max=dim(df)[1],style = 3)
-
-#For loop that will copy the file location from the old bucket to the new bucket.
-for (position in 1:dim(df)[1]){
-  system(command = paste("aws s3 cp ",df$s3[position]," ",df$new_s3[position],sep = ""),intern = TRUE,wait = TRUE)
-  upload_count=upload_count+1
-  setTxtProgressBar(pb,position)
+if (copier=="yes"){
+  
+  #A start message for the user that the file copying is underway.
+  cat("\nThe data files are being moved to the new bucket location.\n\n")
+  
+  #Progress bar setup
+  pb=txtProgressBar(min=0,max=dim(df)[1],style = 3)
+  
+  #For loop that will copy the file location from the old bucket to the new bucket.
+  
+  for (position in 1:dim(df)[1]){
+    system(command = paste("aws s3 cp ",df$s3[position]," ",df$new_s3[position],sep = ""),intern = TRUE,wait = TRUE)
+    upload_count=upload_count+1
+    setTxtProgressBar(pb,position)
+  }
+  
+  #A stop message for the user that the file copying is done.
+  cat("\n\nThe data files have been moved to the new bucket location.\n")
 }
+
 
 #New bucket count after upload
 newer_bucket_count=length(system(command = paste("aws s3 ls --recursive ",base_bucket,sep = ""),intern = TRUE,wait = TRUE))
@@ -185,13 +198,10 @@ df_cds_new=suppressMessages(left_join(df_cds,df))
 
 df_cds_new=df_cds_new%>%
   mutate(file_url_in_cds=url)%>%
-  select(GUID,file_size,md5sum,url,acl,everything())
+  select(-url)
 
 #Write out of new CDS submission template
 write_tsv(x = df_cds_new,file = paste(path,output_file,".tsv",sep = ""), na="")
-
-#A stop message for the user that the file copying is done.
-cat("\n\nThe data files have been moved to the new bucket location.\n")
 
 cat(paste("\nThe updated CDS Submission Template, ",file_name,"_updated_buckets.tsv, has been created with the new bucket locations.\n",sep = ""))
 
