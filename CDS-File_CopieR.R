@@ -60,13 +60,13 @@ option_list = list(
 )
 
 #create list of options and values for file input
-opt_parser = OptionParser(option_list=option_list, description = "\nCDS-File_CopieR v2.0.0\n\nPlease supply the following script with a validated CDS submission template v1.3.1 file and the new AWS bucket location.")
+opt_parser = OptionParser(option_list=option_list, description = "\nCDS-File_CopieR v2.0.1\n\nPlease supply the following script with a validated CDS submission template v1.3.1 file and the new AWS bucket location.")
 opt = parse_args(opt_parser)
 
 #If no template is presented, return --help, stop and print the following message.
 if (is.null(opt$file)){
   print_help(opt_parser)
-  cat("Please supply the validated CDS submission template v1.3.1 file (-f).\n\n")
+  cat("Please supply the validated CDS submission template file (-f).\n\n")
   suppressMessages(stop(call.=FALSE))
 }
 
