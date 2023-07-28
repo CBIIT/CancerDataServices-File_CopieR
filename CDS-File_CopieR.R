@@ -56,7 +56,9 @@ option_list = list(
   make_option(c("-b", "--bucket"), type="character", default=NULL, 
               help="The new AWS bucket location for the files, e.g. s3://bucket.location.is.here/", metavar="character"),
   make_option(c("-c", "--copy"), type="character", default="Yes", 
-              help="The following option (Yes/No) is for if you would like to disable copying the files and only recieve the output file.", metavar="character")
+              help="The following option (Yes/No) is for if you would like to disable copying the files and only recieve the output file.", metavar="character"),
+  make_option(c("-o", "--overwrite"), type="character", default="No", 
+              help="The following option (Yes/No) is for if you would like to enable overwriting the existing files within the buckets.", metavar="character")
 )
 
 #create list of options and values for file input
@@ -79,12 +81,22 @@ if (is.null(opt$bucket)){
 
 #Data file pathway
 base_bucket=opt$bucket
+base_bucket_only=gsub("^s3://([^/]+)/.*", "\\1", base_bucket)
 
 #Template file pathway
 file_path=file_path_as_absolute(opt$file)
 
 #Copy?
 copier=tolower(opt$copy)
+
+#Overwrite flag
+overwrite_flag=tolower(opt$overwrite)
+
+if (overwrite_flag=='no'){
+  overwrite_flag=FALSE
+}else if (overwrite_flag=='yes'){
+  overwrite_flag=TRUE
+}
 
 
 ###########
@@ -127,9 +139,9 @@ df=remove_empty(df,which = "rows")
 #Simplify the data frame to only include the needed column with a simplier name.
 df_cds=df#%>%
   #select(-url)
-df=select(df,file_url_in_cds)
+df=select(df,file_url_in_cds,file_size)
 
-colnames(df)<-c("s3")
+colnames(df)<-c("s3","file_size")
 
 
 #############
@@ -168,6 +180,21 @@ cds_count=dim(df)[1]
 
 upload_count=0
 
+#Set up bucket check to see if data already exist and see what has been submitted previously
+metadata_files=suppressMessages(suppressWarnings(system(command = paste("aws s3 ls --recursive ", base_bucket,sep = ""),intern = TRUE)))
+
+#fix bucket metadata to have fixed delimiters of one space
+while (any(grepl(pattern = "  ",x = metadata_files))==TRUE){
+  metadata_files=stri_replace_all_fixed(str = metadata_files,pattern = "  ",replacement = " ")
+}
+
+#Break bucket string into a data frame and clean up
+bucket_metadata=data.frame(all_metadata=metadata_files)
+bucket_metadata=separate(bucket_metadata, all_metadata, into = c("date","time","file_size","file_path"),sep = " ", extra = "merge")%>%
+  select(-date, -time)%>%
+  mutate(file_path=paste("s3://",base_bucket_only,"/",file_path,sep = ""))
+
+
 if (copier=="yes"){
   
   #A start message for the user that the file copying is underway.
@@ -179,11 +206,38 @@ if (copier=="yes"){
   #For loop that will copy the file location from the old bucket to the new bucket.
   
   for (position in 1:dim(df)[1]){
-    system(command = paste("aws s3 cp ",df$s3[position]," ",df$new_s3[position],sep = ""),intern = TRUE,wait = TRUE)
-    upload_count=upload_count+1
-    setTxtProgressBar(pb,position)
+    
+    #has overwrite been enabled, if TRUE, then just upload each file
+    if (overwrite_flag){
+      system(command = paste("aws s3 cp ",df$s3[position]," ",df$new_s3[position],sep = ""),intern = TRUE,wait = TRUE)
+      upload_count=upload_count+1
+      setTxtProgressBar(pb,position)
+      
+    }
+    #otherwise if overwrite has been disabled, if FALSE, then use checks to see what is already in the bucket.
+    else{
+      #check to see if the file has already been moved over previously
+      upload_file_path=df$new_s3[position]
+      upload_file_size=df$file_size[position]
+      
+      filtered_df=bucket_metadata[grep(pattern = TRUE, x = (bucket_metadata$file_path %in% upload_file_path)),]
+      filtered_df=filtered_df[grep(pattern = TRUE, x = filtered_df$file_size %in% upload_file_size),]
+      
+      #if the row for the file to be uploaded cannot be perfectly matched to the metadata in the bucket
+      #copy over the file to ensure that the copy did occur.
+      if (dim(filtered_df)[1]!=1){
+        
+        system(command = paste("aws s3 cp ",df$s3[position]," ",df$new_s3[position],sep = ""),intern = TRUE,wait = TRUE)
+        upload_count=upload_count+1
+        setTxtProgressBar(pb,position)
+        
+      }else{
+        #for when there is only one exact match, then skip the copy and just add the count.
+        upload_count=upload_count+1
+        setTxtProgressBar(pb,position)
+      }
+    }
   }
-  
   #A stop message for the user that the file copying is done.
   cat("\n\nThe data files have been moved to the new bucket location.\n")
 }
@@ -193,6 +247,7 @@ if (copier=="yes"){
 newer_bucket_count=length(system(command = paste("aws s3 ls --recursive ",base_bucket,sep = ""),intern = TRUE,wait = TRUE))
 
 #Combine the new and old buckets with the CDS submission template
+df=select(df, -file_size)
 colnames(df)<-c("file_url_in_cds","url")
 df_cds_new=suppressMessages(left_join(df_cds,df))
 
