@@ -21,6 +21,12 @@ Options:
 	-b CHARACTER, --bucket=CHARACTER
 		The new AWS bucket location for the files, e.g. s3://bucket.location.is.here/
 
+	-c CHARACTER, --copy=CHARACTER
+		The following option (Yes/No) is for if you would like to disable copying the files and only recieve the output file.
+
+	-o CHARACTER, --overwrite=CHARACTER
+		The following option (Yes/No) is for if you would like to enable overwriting the existing files within the buckets.
+
 	-h, --help
 		Show this help message and exit
 ```
