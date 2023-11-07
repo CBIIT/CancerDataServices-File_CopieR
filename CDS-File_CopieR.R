@@ -136,7 +136,7 @@ if (ext == "tsv"){
 #Remove any situations where deletions of rows are considered NA values in excel
 df=remove_empty(df,which = "rows")
 
-#Simplify the data frame to only include the needed column with a simplier name.
+#Simplify the data frame to only include the needed column with a simpler name.
 df_cds=df#%>%
   #select(-url)
 df=select(df,file_url_in_cds,file_size)
@@ -166,10 +166,12 @@ new_bucket_count=suppressWarnings(length(system(command = paste("aws s3 ls --rec
 #############
 
 #Manipulate data frame to add new s3 bucket onto the directory location of the old s3 bucket.
+# the lines with '\"' are there to safe guard the command line from unexpected characters.
 df=df%>%
   mutate(new_s3=s3)%>%
   separate(new_s3,into = c("s3_pre","blank","bucket","directory"),extra = "merge",sep = "/")%>%
-  mutate(new_s3=paste(base_bucket,directory,sep = ""))%>%
+  mutate(new_s3=paste('\"',base_bucket,directory,'\"',sep = ""))%>%
+  mutate(s3=paste('\"',s3,'\"',sep = ""))%>%
   select(-directory,-s3_pre,-blank,-bucket)
 
 #Make sure if there are multiples of the same file, we only transfer once.
