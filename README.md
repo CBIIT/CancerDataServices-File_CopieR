@@ -1,3 +1,8 @@
+> [!WARNING]
+> This repository has been archived and is no longer maintained.  
+> The code is provided for historical reference and may contain unpatched or unknown vulnerabilities.  
+> It should not be used in production systems.  
+
 # CancerDataServices-File_CopieR
 This script will take a validated CDS submission template and transfer the files from one AWS bucket to a new AWS bucket and output a new template with the updated file locations.
 
